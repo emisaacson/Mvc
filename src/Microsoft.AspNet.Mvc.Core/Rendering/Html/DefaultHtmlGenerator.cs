@@ -55,7 +55,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             _htmlEncoder = htmlEncoder;
 
             // Underscores are fine characters in id's.
-            IdAttributeDotReplacement = "_";
+            IdAttributeDotReplacement = optionsAccessor.Options.HtmlHelperOptions.IdAttributeDotReplacement;
         }
 
         /// <inheritdoc />

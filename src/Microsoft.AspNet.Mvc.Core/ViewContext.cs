@@ -43,18 +43,20 @@ namespace Microsoft.AspNet.Mvc
             [NotNull] IView view,
             [NotNull] ViewDataDictionary viewData,
             [NotNull] ITempDataDictionary tempData,
-            [NotNull] TextWriter writer)
+            [NotNull] TextWriter writer,
+            [NotNull] HtmlHelperOptions htmlHelperOptions)
             : base(actionContext)
         {
             View = view;
             ViewData = viewData;
             TempData = tempData;
             Writer = writer;
+            var config = htmlHelperOptions;
 
             _formContext = _defaultFormContext;
-            ClientValidationEnabled = true;
-            ValidationSummaryMessageElement = "span";
-            ValidationMessageElement = "span";
+            ClientValidationEnabled = config.ClientValidationEnabled;
+            ValidationSummaryMessageElement = config.ValidationSummaryMessageElement;
+            ValidationMessageElement = config.ValidationMessageElement;
         }
 
         /// <summary>

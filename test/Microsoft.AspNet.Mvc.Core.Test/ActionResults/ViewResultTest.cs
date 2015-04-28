@@ -11,6 +11,7 @@ using Microsoft.Framework.Logging;
 using Microsoft.Net.Http.Headers;
 using Moq;
 using Xunit;
+using Microsoft.Framework.OptionsModel;
 
 namespace Microsoft.AspNet.Mvc
 {

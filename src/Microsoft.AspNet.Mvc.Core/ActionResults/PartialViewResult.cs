@@ -8,6 +8,7 @@ using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Internal;
 using Microsoft.Framework.Logging;
 using Microsoft.Net.Http.Headers;
+using Microsoft.Framework.OptionsModel;
 
 namespace Microsoft.AspNet.Mvc
 {
@@ -80,7 +81,13 @@ namespace Microsoft.AspNet.Mvc
 
             using (view as IDisposable)
             {
-                await ViewExecutor.ExecuteAsync(view, context, ViewData, TempData, ContentType);
+                await ViewExecutor.ExecuteAsync(
+                    view,
+                    context,
+                    ViewData,
+                    TempData,
+                    new HtmlHelperOptions(),
+                    ContentType);
             }
         }
     }

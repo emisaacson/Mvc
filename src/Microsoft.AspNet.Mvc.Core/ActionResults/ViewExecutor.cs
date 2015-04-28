@@ -1,4 +1,4 @@
-// Copyright (c) .NET Foundation. All rights reserved.
+﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNet.Mvc.Rendering;
 using Microsoft.Framework.Internal;
 using Microsoft.Net.Http.Headers;
+using Microsoft.Framework.OptionsModel;
 
 namespace Microsoft.AspNet.Mvc
 {
@@ -34,6 +35,7 @@ namespace Microsoft.AspNet.Mvc
                                               [NotNull] ActionContext actionContext,
                                               [NotNull] ViewDataDictionary viewData,
                                               [NotNull] ITempDataDictionary tempData,
+                                              [NotNull] HtmlHelperOptions htmlHelperOptions,
                                               MediaTypeHeaderValue contentType)
         {
             var response = actionContext.HttpContext.Response;
@@ -70,7 +72,14 @@ namespace Microsoft.AspNet.Mvc
             {
                 try
                 {
-                    var viewContext = new ViewContext(actionContext, view, viewData, tempData, writer);
+                    var viewContext = new ViewContext(
+                        actionContext,
+                        view,
+                        viewData,
+                        tempData,
+                        writer,
+                        htmlHelperOptions);
+
                     await view.RenderAsync(viewContext);
                 }
                 catch

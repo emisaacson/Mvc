@@ -8,6 +8,7 @@ using Microsoft.AspNet.Mvc.Core;
 using Microsoft.AspNet.Mvc.ModelBinding;
 using Microsoft.AspNet.Mvc.ModelBinding.Metadata;
 using Microsoft.AspNet.Mvc.ModelBinding.Validation;
+using Microsoft.AspNet.Mvc.Rendering;
 
 namespace Microsoft.AspNet.Mvc
 {
@@ -17,6 +18,7 @@ namespace Microsoft.AspNet.Mvc
     public class MvcOptions
     {
         private AntiForgeryOptions _antiForgeryOptions = new AntiForgeryOptions();
+        private HtmlHelperOptions _htmlHelperOptions = new HtmlHelperOptions();
         private int _maxModelStateErrors = ModelStateDictionary.DefaultMaxAllowedErrors;
 
         public MvcOptions()
@@ -163,5 +165,28 @@ namespace Microsoft.AspNet.Mvc
         /// </ul>
         /// </remarks>
         public IList<IMetadataDetailsProvider> ModelMetadataDetailsProviders { get; }
+
+        /// <summary>
+        /// Provides programmatic configuration for the html helpers and view context.
+        /// </summary>
+        public HtmlHelperOptions HtmlHelperOptions
+        {
+            get
+            {
+                return _htmlHelperOptions;
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(
+                        nameof(value),
+                        Resources.FormatPropertyOfTypeCannotBeNull(nameof(HtmlHelperOptions), typeof(MvcOptions)));
+                }
+
+                _htmlHelperOptions = value;
+            }
+        }
     }
 }
