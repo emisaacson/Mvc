@@ -55,6 +55,7 @@ namespace Microsoft.AspNet.Mvc
 
             _formContext = _defaultFormContext;
             ClientValidationEnabled = config.ClientValidationEnabled;
+            Html5DateRenderingMode = config.Html5DateRenderingMode;
             ValidationSummaryMessageElement = config.ValidationSummaryMessageElement;
             ValidationMessageElement = config.ValidationMessageElement;
         }

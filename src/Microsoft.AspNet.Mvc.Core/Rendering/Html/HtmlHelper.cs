@@ -497,6 +497,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
                 var htmlHelperOptions = new HtmlHelperOptions
                 {
                     ClientValidationEnabled = ViewContext.ClientValidationEnabled,
+                    Html5DateRenderingMode = ViewContext.Html5DateRenderingMode,
                     ValidationMessageElement = ViewContext.ValidationMessageElement,
                     ValidationSummaryMessageElement = ViewContext.ValidationSummaryMessageElement
                 };
