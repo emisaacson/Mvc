@@ -60,6 +60,8 @@ namespace Microsoft.AspNet.Mvc
 
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<ViewResult>>();
 
+            var options = context.HttpContext.RequestServices.GetRequiredService<IOptions<MvcOptions>>();
+
             var viewName = ViewName ?? context.ActionDescriptor.Name;
             var viewEngineResult = viewEngine.FindView(context, viewName);
             if(!viewEngineResult.Success)
@@ -86,7 +88,7 @@ namespace Microsoft.AspNet.Mvc
                     context,
                     ViewData,
                     TempData,
-                    new HtmlHelperOptions(),
+                    options.Options.HtmlHelperOptions,
                     ContentType);
             }
         }

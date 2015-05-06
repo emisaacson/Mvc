@@ -179,6 +179,13 @@ namespace Microsoft.AspNet.Mvc
                            .Returns(viewEngine.Object);
             serviceProvider.Setup(p => p.GetService(typeof(ILogger<ViewResult>)))
                            .Returns(new Mock<ILogger<ViewResult>>().Object);
+            serviceProvider.Setup(s => s.GetService(typeof(IOptions<MvcOptions>)))
+                .Returns(() => {
+                    var optionsAccessor = new Mock<IOptions<MvcOptions>>();
+                    optionsAccessor.SetupGet(o => o.Options)
+                        .Returns(new MvcOptions());
+                    return optionsAccessor.Object;
+                });
             context.HttpContext.RequestServices = serviceProvider.Object;
 
             var viewResult = new ViewResult
@@ -198,6 +205,14 @@ namespace Microsoft.AspNet.Mvc
             var serviceProvider = new Mock<IServiceProvider>();
             serviceProvider.Setup(s => s.GetService(typeof(ILogger<ViewResult>)))
                 .Returns(new Mock<ILogger<ViewResult>>().Object);
+
+            serviceProvider.Setup(s => s.GetService(typeof(IOptions<MvcOptions>)))
+                .Returns(() => {
+                    var optionsAccessor = new Mock<IOptions<MvcOptions>>();
+                    optionsAccessor.SetupGet(o => o.Options)
+                        .Returns(new MvcOptions());
+                    return optionsAccessor.Object;
+                });
 
             var httpContext = new DefaultHttpContext();
             httpContext.RequestServices = serviceProvider.Object;

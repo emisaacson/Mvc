@@ -494,15 +494,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var view = viewEngineResult.View;
             using (view as IDisposable)
             {
-                var htmlHelperOptions = new HtmlHelperOptions
-                {
-                    ClientValidationEnabled = ViewContext.ClientValidationEnabled,
-                    Html5DateRenderingMode = ViewContext.Html5DateRenderingMode,
-                    ValidationMessageElement = ViewContext.ValidationMessageElement,
-                    ValidationSummaryMessageElement = ViewContext.ValidationSummaryMessageElement
-                };
-
-                var viewContext = new ViewContext(ViewContext, view, newViewData, TempData, writer, htmlHelperOptions);
+                var viewContext = new ViewContext(ViewContext, view, newViewData, writer);
                 await viewEngineResult.View.RenderAsync(viewContext);
             }
         }

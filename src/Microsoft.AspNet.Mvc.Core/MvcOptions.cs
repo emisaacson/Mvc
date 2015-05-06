@@ -9,6 +9,7 @@ using Microsoft.AspNet.Mvc.ModelBinding;
 using Microsoft.AspNet.Mvc.ModelBinding.Metadata;
 using Microsoft.AspNet.Mvc.ModelBinding.Validation;
 using Microsoft.AspNet.Mvc.Rendering;
+using Microsoft.Framework.Internal;
 
 namespace Microsoft.AspNet.Mvc
 {
@@ -176,15 +177,9 @@ namespace Microsoft.AspNet.Mvc
                 return _htmlHelperOptions;
             }
 
+            [param: NotNull]
             set
             {
-                if (value == null)
-                {
-                    throw new ArgumentNullException(
-                        nameof(value),
-                        Resources.FormatPropertyOfTypeCannotBeNull(nameof(HtmlHelperOptions), typeof(MvcOptions)));
-                }
-
                 _htmlHelperOptions = value;
             }
         }
