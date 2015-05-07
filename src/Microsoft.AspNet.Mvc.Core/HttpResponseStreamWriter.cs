@@ -10,16 +10,18 @@ using Microsoft.Framework.Internal;
 namespace Microsoft.AspNet.Mvc
 {
     /// <summary>
-    /// Writes to the supplied <see cref="Stream"/> using the supplied <see cref="Encoding"/>.
+    /// Writes to the <see cref="Stream"/> using the supplied <see cref="Encoding"/>.
     /// It does not write the BOM and also does not close the stream.
     /// </summary>
     public class HttpResponseStreamWriter : TextWriter
     {
         private const int DefaultBufferSize = 1024;
         private readonly Stream _stream;
-        private readonly int _bufferSize;
-        private byte[] _buffer;
-        private int _numOfBytesWrittenToBuffer;
+        private Encoder _encoder;
+        private byte[] _byteBuffer;
+        private char[] _charBuffer;
+        private int _charBufferSize;
+        private int _charBufferCount;
 
         public HttpResponseStreamWriter(Stream stream, Encoding encoding)
             : this(stream, encoding, DefaultBufferSize)
@@ -28,152 +30,246 @@ namespace Microsoft.AspNet.Mvc
 
         public HttpResponseStreamWriter([NotNull] Stream stream, [NotNull] Encoding encoding, int bufferSize)
         {
-            _stream = stream;
+            this._stream = stream;
             Encoding = encoding;
-            _bufferSize = bufferSize;
+            _encoder = encoding.GetEncoder();
+            _charBufferSize = bufferSize;
+            _charBuffer = new char[bufferSize];
+            _byteBuffer = new byte[encoding.GetMaxByteCount(bufferSize)];
         }
 
         public override Encoding Encoding { get; }
 
         public override void Write(char value)
         {
-            var bytes = Encoding.GetBytes(new[] { value });
-            WriteBytes(bytes);
+            if (_charBufferCount == _charBufferSize)
+            {
+                Flush();
+            }
+
+            _charBuffer[_charBufferCount] = value;
+            _charBufferCount++;
         }
 
-        public override void Write(char[] buffer)
+        public override void Write(char[] values)
         {
-            var bytes = Encoding.GetBytes(buffer);
-            WriteBytes(bytes);
+            if (values == null)
+            {
+                return;
+            }
+
+            Write(values, 0, values.Length);
         }
 
         public override void Write(char[] buffer, int index, int count)
         {
-            var bytes = Encoding.GetBytes(buffer, index, count);
-            WriteBytes(bytes);
+            if (buffer == null)
+            {
+                return;
+            }
+
+            while (count > 0)
+            {
+                if (_charBufferCount == _charBufferSize)
+                {
+                    Flush();
+                }
+
+                int remaining = _charBufferSize - _charBufferCount;
+                if (remaining > count)
+                {
+                    remaining = count;
+                }
+
+                Buffer.BlockCopy(
+                    src: buffer,
+                    srcOffset: index * sizeof(char),
+                    dst: _charBuffer,
+                    dstOffset: _charBufferCount * sizeof(char),
+                    count: remaining * sizeof(char));
+
+                _charBufferCount += remaining;
+                index += remaining;
+                count -= remaining;
+            }
         }
 
         public override void Write(string value)
         {
-            var bytes = Encoding.GetBytes(value);
-            WriteBytes(bytes);
+            if (value != null)
+            {
+                int count = value.Length;
+                int index = 0;
+                while (count > 0)
+                {
+                    if (_charBufferCount == _charBufferSize)
+                    {
+                        Flush();
+                    }
+
+                    int remaining = _charBufferSize - _charBufferCount;
+                    if (remaining > count)
+                    {
+                        remaining = count;
+                    }
+
+                    value.CopyTo(
+                        sourceIndex: index,
+                        destination: _charBuffer,
+                        destinationIndex: _charBufferCount,
+                        count: remaining);
+
+                    _charBufferCount += remaining;
+                    index += remaining;
+                    count -= remaining;
+                }
+            }
         }
 
         public override async Task WriteAsync(char value)
         {
-            var bytes = Encoding.GetBytes(new[] { value });
-            await WriteBytesAsync(bytes);
+            if (_charBufferCount == _charBufferSize)
+            {
+                await FlushAsync();
+            }
+
+            _charBuffer[_charBufferCount] = value;
+            _charBufferCount++;
         }
 
         public override async Task WriteAsync(char[] buffer, int index, int count)
         {
-            var bytes = Encoding.GetBytes(buffer, index, count);
-            await WriteBytesAsync(bytes);
+            if (buffer == null)
+            {
+                return;
+            }
+
+            while (count > 0)
+            {
+                if (_charBufferCount == _charBufferSize)
+                {
+                    await FlushAsync();
+                }
+
+                int remaining = _charBufferSize - _charBufferCount;
+                if (remaining > count)
+                {
+                    remaining = count;
+                }
+
+                Buffer.BlockCopy(
+                    src: buffer,
+                    srcOffset: index * sizeof(char),
+                    dst: _charBuffer,
+                    dstOffset: _charBufferCount * sizeof(char),
+                    count: remaining * sizeof(char));
+
+                _charBufferCount += remaining;
+                index += remaining;
+                count -= remaining;
+            }
         }
 
         public override async Task WriteAsync(string value)
         {
-            var bytes = Encoding.GetBytes(value);
-            await WriteBytesAsync(bytes);
+            if (value != null)
+            {
+                int count = value.Length;
+                int index = 0;
+                while (count > 0)
+                {
+                    if (_charBufferCount == _charBufferSize)
+                    {
+                        await FlushAsync();
+                    }
+
+                    int charBufferFreeSpace = _charBufferSize - _charBufferCount;
+                    if (charBufferFreeSpace > count)
+                    {
+                        charBufferFreeSpace = count;
+                    }
+
+                    value.CopyTo(
+                        sourceIndex: index,
+                        destination: _charBuffer,
+                        destinationIndex: _charBufferCount,
+                        count: charBufferFreeSpace);
+
+                    _charBufferCount += charBufferFreeSpace;
+                    index += charBufferFreeSpace;
+                    count -= charBufferFreeSpace;
+                }
+            }
+        }
+
+        // Do not flush the stream on Close/Dispose, as this will cause response to be
+        // sent in chunked encoding in case of Helios.
+        // We however want to flush the stream when Flush/FlushAsync is explicitly
+        // called by the user (example: from a Razor view).
+
+        public override void Flush()
+        {
+            Flush(true, true);
         }
 
         public override async Task FlushAsync()
         {
-            await WriteRemainingBytesAsync();
-        }
-
-        public override void Flush()
-        {
-            WriteRemainingBytes();
+            await FlushAsync(true, true);
         }
 
 #if DNX451
         public override void Close()
         {
-            WriteRemainingBytes();
+            Flush(flushStream: false, flushEncoder: true);
         }
 #endif
 
         protected override void Dispose(bool disposing)
         {
-            //In CoreCLR this is equivalent to Close.
-            WriteRemainingBytes();
+            Flush(flushStream: false, flushEncoder: true);
         }
 
-        private byte[] Buffer
+        private void Flush(bool flushStream = false, bool flushEncoder = false)
         {
-            get
+            if (_charBufferCount == 0)
             {
-                if (_buffer == null)
-                {
-                    _buffer = new byte[_bufferSize];
-                }
-
-                return _buffer;
+                return;
             }
-        }
 
-        private void WriteBytes(byte[] bytes)
-        {
-            if ((_numOfBytesWrittenToBuffer + bytes.Length) >= _bufferSize)
+            int count = _encoder.GetBytes(_charBuffer, 0, _charBufferCount, _byteBuffer, 0, flushEncoder);
+            if (count > 0)
             {
-                if (_numOfBytesWrittenToBuffer > 0)
-                {
-                    _stream.Write(Buffer, 0, _numOfBytesWrittenToBuffer);
-                }
-
-                _stream.Write(bytes, 0, bytes.Length);
-                _numOfBytesWrittenToBuffer = 0;
+                _stream.Write(_byteBuffer, 0, count);
             }
-            else
-            {
-                CopyToBuffer(bytes);
-            }
-        }
 
-        private async Task WriteBytesAsync(byte[] bytes)
-        {
-            if ((_numOfBytesWrittenToBuffer + bytes.Length) >= _bufferSize)
-            {
-                if (_numOfBytesWrittenToBuffer > 0)
-                {
-                    await _stream.WriteAsync(Buffer, 0, _numOfBytesWrittenToBuffer);
-                }
+            _charBufferCount = 0;
 
-                await _stream.WriteAsync(bytes, 0, bytes.Length);
-                _numOfBytesWrittenToBuffer = 0;
-            }
-            else
+            if (flushStream)
             {
-                CopyToBuffer(bytes);
-            }
-        }
-
-        private void WriteRemainingBytes()
-        {
-            if (_numOfBytesWrittenToBuffer > 0)
-            {
-                _stream.Write(Buffer, 0, _numOfBytesWrittenToBuffer);
                 _stream.Flush();
-                _numOfBytesWrittenToBuffer = 0;
             }
         }
 
-        private async Task WriteRemainingBytesAsync()
+        private async Task FlushAsync(bool flushStream = false, bool flushEncoder = false)
         {
-            if (_numOfBytesWrittenToBuffer > 0)
+            if (_charBufferCount == 0)
             {
-                await _stream.WriteAsync(Buffer, 0, _numOfBytesWrittenToBuffer);
-                await _stream.FlushAsync();
-                _numOfBytesWrittenToBuffer = 0;
+                return;
             }
-        }
 
-        private void CopyToBuffer(byte[] bytes)
-        {
-            var bufferStartIndex = (_numOfBytesWrittenToBuffer == 0) ? 0 : _numOfBytesWrittenToBuffer;
-            Array.Copy(bytes, 0, Buffer, bufferStartIndex, bytes.Length);
-            _numOfBytesWrittenToBuffer = _numOfBytesWrittenToBuffer + bytes.Length;
+            int count = _encoder.GetBytes(_charBuffer, 0, _charBufferCount, _byteBuffer, 0, flushEncoder);
+            if (count > 0)
+            {
+                await _stream.WriteAsync(_byteBuffer, 0, count);
+            }
+
+            _charBufferCount = 0;
+
+            if (flushStream)
+            {
+                await _stream.FlushAsync();
+            }
         }
     }
 }
+

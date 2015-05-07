@@ -1,12 +1,10 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using Moq;
-using Moq.Protected;
 using Xunit;
 
 namespace Microsoft.AspNet.Mvc
@@ -33,140 +31,307 @@ namespace Microsoft.AspNet.Mvc
         }
 
         [Fact]
-        public async Task DoesNotClose_UnderlyingStream_OnDisposingWriter()
+        public async Task DoesNotFlush_UnderlyingStream_OnClosingWriter()
         {
             // Arrange
-            var stream = new Mock<Stream>();
-            stream.Setup(s => s.Close()).Verifiable();
-            var writer = new HttpResponseStreamWriter(stream.Object, Encoding.UTF8);
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
 
             // Act
             await writer.WriteAsync("Hello");
             writer.Close();
 
             // Assert
-            stream.Verify(s => s.Close(), Times.Never());
+            Assert.Equal(0, stream.FlushCallCount);
+            Assert.Equal(0, stream.FlushAsyncCallCount);
+        }
+
+        [Fact]
+        public async Task DoesNotFlush_UnderlyingStream_OnDisposingWriter()
+        {
+            // Arrange
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
+
+            // Act
+            await writer.WriteAsync("Hello");
+            writer.Dispose();
+
+            // Assert
+            Assert.Equal(0, stream.FlushCallCount);
+            Assert.Equal(0, stream.FlushAsyncCallCount);
+        }
+
+        [Fact]
+        public async Task DoesNotClose_UnderlyingStream_OnDisposingWriter()
+        {
+            // Arrange
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
+
+            // Act
+            await writer.WriteAsync("Hello");
+            writer.Close();
+
+            // Assert
+            Assert.Equal(0, stream.CloseCallCount);
         }
 
         [Fact]
         public async Task DoesNotDispose_UnderlyingStream_OnDisposingWriter()
         {
             // Arrange
-            var stream = new Mock<Stream>();
-            stream.Protected().Setup("Dispose", ItExpr.IsAny<bool>()).Verifiable();
-            var writer = new HttpResponseStreamWriter(stream.Object, Encoding.UTF8);
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
 
             // Act
             await writer.WriteAsync("Hello world");
             writer.Dispose();
 
             // Assert
-            stream.Protected().Verify("Dispose", Times.Never(), ItExpr.IsAny<bool>());
+            Assert.Equal(0, stream.DisposeCallCount);
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(50)]
         [InlineData(1023)]
-        public async Task DoesNotWriteToStream_IfBufferIsNotFull(int byteLength)
-        {
-            // Arrange
-            var memoryStream = new MemoryStream();
-            var writer = new HttpResponseStreamWriter(memoryStream, Encoding.UTF8);
-
-            // Act
-            await writer.WriteAsync(new string('a', byteLength));
-
-            // Assert
-            Assert.Empty(memoryStream.ToArray());
-        }
-
-        [Theory]
         [InlineData(1024)]
-        [InlineData(2048)]
-        public async Task WritesToStream_IfBufferIsFull(int byteLength)
-        {
-            // Arrange
-            var memoryStream = new MemoryStream();
-            var writer = new HttpResponseStreamWriter(memoryStream, Encoding.UTF8);
-
-            // Act
-            await writer.WriteAsync(new string('a', byteLength));
-
-            // Assert
-            Assert.Equal(byteLength, memoryStream.Length);
-        }
-
-        [Theory]
-        [InlineData(0)]
-        [InlineData(1023)]
         [InlineData(1050)]
+        [InlineData(2048)]
         public async Task FlushesBuffer_OnClose(int byteLength)
         {
             // Arrange
-            var memoryStream = new MemoryStream();
-            var writer = new HttpResponseStreamWriter(memoryStream, Encoding.UTF8);
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
             await writer.WriteAsync(new string('a', byteLength));
 
             // Act
             writer.Close();
 
             // Assert
-            Assert.Equal(byteLength, memoryStream.Length);
+            Assert.Equal(0, stream.FlushCallCount);
+            Assert.Equal(0, stream.FlushAsyncCallCount);
+            Assert.Equal(byteLength, stream.Length);
         }
 
         [Theory]
-        [InlineData(0)]
         [InlineData(1023)]
+        [InlineData(1024)]
         [InlineData(1050)]
+        [InlineData(2048)]
         public async Task FlushesBuffer_OnDispose(int byteLength)
         {
             // Arrange
-            var memoryStream = new MemoryStream();
-            var writer = new HttpResponseStreamWriter(memoryStream, Encoding.UTF8);
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
             await writer.WriteAsync(new string('a', byteLength));
 
             // Act
             writer.Dispose();
 
             // Assert
-            Assert.Equal(byteLength, memoryStream.Length);
+            Assert.Equal(0, stream.FlushCallCount);
+            Assert.Equal(0, stream.FlushAsyncCallCount);
+            Assert.Equal(byteLength, stream.Length);
+        }
+
+        [Fact]
+        public void NoDataWritten_Flush_DoesNotFlushUnderlyingStream()
+        {
+            // Arrange
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
+
+            // Act
+            writer.Flush();
+
+            // Assert
+            Assert.Equal(0, stream.FlushCallCount);
+            Assert.Equal(0, stream.Length);
         }
 
         [Theory]
-        [InlineData(0)]
         [InlineData(1023)]
+        [InlineData(1024)]
         [InlineData(1050)]
+        [InlineData(2048)]
         public void FlushesBuffer_OnFlush(int byteLength)
         {
             // Arrange
-            var memoryStream = new MemoryStream();
-            var writer = new HttpResponseStreamWriter(memoryStream, Encoding.UTF8);
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
             writer.Write(new string('a', byteLength));
 
             // Act
             writer.Flush();
 
             // Assert
-            Assert.Equal(byteLength, memoryStream.Length);
+            Assert.Equal(1, stream.FlushCallCount);
+            Assert.Equal(byteLength, stream.Length);
+        }
+
+        [Fact]
+        public async Task NoDataWritten_FlushAsync_DoesNotFlushUnderlyingStream()
+        {
+            // Arrange
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
+
+            // Act
+            await writer.FlushAsync();
+
+            // Assert
+            Assert.Equal(0, stream.FlushAsyncCallCount);
+            Assert.Equal(0, stream.Length);
         }
 
         [Theory]
-        [InlineData(0)]
         [InlineData(1023)]
+        [InlineData(1024)]
         [InlineData(1050)]
+        [InlineData(2048)]
         public async Task FlushesBuffer_OnFlushAsync(int byteLength)
         {
             // Arrange
-            var memoryStream = new MemoryStream();
-            var writer = new HttpResponseStreamWriter(memoryStream, Encoding.UTF8);
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
             await writer.WriteAsync(new string('a', byteLength));
 
             // Act
             await writer.FlushAsync();
 
             // Assert
-            Assert.Equal(byteLength, memoryStream.Length);
+            Assert.Equal(1, stream.FlushAsyncCallCount);
+            Assert.Equal(byteLength, stream.Length);
+        }
+
+        [Theory]
+        [InlineData(1023)]
+        [InlineData(1024)]
+        [InlineData(1050)]
+        [InlineData(2048)]
+        public void WriteChar_WritesToStream(int byteLength)
+        {
+            // Arrange
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
+
+            // Act
+            using (writer)
+            {
+                for (var i = 0; i < byteLength; i++)
+                {
+                    writer.Write('a');
+                }
+            }
+
+            // Assert
+            Assert.Equal(byteLength, stream.Length);
+        }
+
+        [Theory]
+        [InlineData(1023)]
+        [InlineData(1024)]
+        [InlineData(1050)]
+        [InlineData(2048)]
+        public void WriteCharArray_WritesToStream(int byteLength)
+        {
+            // Arrange
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
+
+            // Act
+            using (writer)
+            {
+                writer.Write((new string('a', byteLength)).ToCharArray());
+            }
+
+            // Assert
+            Assert.Equal(byteLength, stream.Length);
+        }
+
+        [Theory]
+        [InlineData(1023)]
+        [InlineData(1024)]
+        [InlineData(1050)]
+        [InlineData(2048)]
+        public async Task WriteCharAsync_WritesToStream(int byteLength)
+        {
+            // Arrange
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
+
+            // Act
+            using (writer)
+            {
+                for (var i = 0; i < byteLength; i++)
+                {
+                    await writer.WriteAsync('a');
+                }
+            }
+
+            // Assert
+            Assert.Equal(byteLength, stream.Length);
+        }
+
+        [Theory]
+        [InlineData(1023)]
+        [InlineData(1024)]
+        [InlineData(1050)]
+        [InlineData(2048)]
+        public async Task WriteCharArrayAsync_WritesToStream(int byteLength)
+        {
+            // Arrange
+            var stream = new TestMemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, Encoding.UTF8);
+
+            // Act
+            using (writer)
+            {
+                await writer.WriteAsync((new string('a', byteLength)).ToCharArray());
+            }
+
+            // Assert
+            Assert.Equal(byteLength, stream.Length);
+        }
+
+        private class TestMemoryStream : MemoryStream
+        {
+            private int _flushCallCount;
+            private int _flushAsyncCallCount;
+            private int _closeCallCount;
+            private int _disposeCallCount;
+
+            public int FlushCallCount { get { return _flushCallCount; } }
+
+            public int FlushAsyncCallCount { get { return _flushAsyncCallCount; } }
+
+            public int CloseCallCount { get { return _closeCallCount; } }
+
+            public int DisposeCallCount { get { return _disposeCallCount; } }
+
+            public override void Flush()
+            {
+                _flushCallCount++;
+                base.Flush();
+            }
+
+            public override Task FlushAsync(CancellationToken cancellationToken)
+            {
+                _flushAsyncCallCount++;
+                return base.FlushAsync(cancellationToken);
+            }
+
+            public override void Close()
+            {
+                _closeCallCount++;
+                base.Close();
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                _disposeCallCount++;
+                base.Dispose(disposing);
+            }
         }
     }
 }
