@@ -92,20 +92,11 @@ namespace Microsoft.AspNet.Mvc
 
             var view = FindView(context.ViewContext, viewEngine, qualifiedViewName);
 
-            var htmlHelperOptions = new HtmlHelperOptions
-            {
-                ClientValidationEnabled = context.ViewContext.ClientValidationEnabled,
-                Html5DateRenderingMode = context.ViewContext.Html5DateRenderingMode,
-                ValidationMessageElement = context.ViewContext.ValidationMessageElement,
-                ValidationSummaryMessageElement = context.ViewContext.ValidationSummaryMessageElement
-            };
             var childViewContext = new ViewContext(
                 context.ViewContext,
                 view,
                 ViewData ?? context.ViewContext.ViewData,
-                TempData ?? context.ViewContext.TempData,
-                context.Writer,
-                htmlHelperOptions);
+                context.Writer);
 
             using (view as IDisposable)
             {

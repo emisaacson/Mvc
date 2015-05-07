@@ -168,7 +168,7 @@ namespace Microsoft.AspNet.Mvc
         public IList<IMetadataDetailsProvider> ModelMetadataDetailsProviders { get; }
 
         /// <summary>
-        /// Provides programmatic configuration for the html helpers and view context.
+        /// Gets or sets programmatic configuration for the HTML helpers and <see cref="ViewContext"/>.
         /// </summary>
         public HtmlHelperOptions HtmlHelperOptions
         {

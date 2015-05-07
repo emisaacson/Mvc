@@ -51,13 +51,12 @@ namespace Microsoft.AspNet.Mvc
             ViewData = viewData;
             TempData = tempData;
             Writer = writer;
-            var config = htmlHelperOptions;
 
             _formContext = _defaultFormContext;
-            ClientValidationEnabled = config.ClientValidationEnabled;
-            Html5DateRenderingMode = config.Html5DateRenderingMode;
-            ValidationSummaryMessageElement = config.ValidationSummaryMessageElement;
-            ValidationMessageElement = config.ValidationMessageElement;
+            ClientValidationEnabled = htmlHelperOptions.ClientValidationEnabled;
+            Html5DateRenderingMode = htmlHelperOptions.Html5DateRenderingMode;
+            ValidationSummaryMessageElement = htmlHelperOptions.ValidationSummaryMessageElement;
+            ValidationMessageElement = htmlHelperOptions.ValidationMessageElement;
         }
 
         /// <summary>

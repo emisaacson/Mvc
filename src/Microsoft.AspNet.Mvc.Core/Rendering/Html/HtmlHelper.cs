@@ -73,10 +73,6 @@ namespace Microsoft.AspNet.Mvc.Rendering
             {
                 return _htmlGenerator.IdAttributeDotReplacement;
             }
-            set
-            {
-                _htmlGenerator.IdAttributeDotReplacement = value;
-            }
         }
 
         /// <inheritdoc />

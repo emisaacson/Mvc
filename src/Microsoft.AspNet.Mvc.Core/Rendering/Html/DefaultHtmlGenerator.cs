@@ -59,7 +59,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
         }
 
         /// <inheritdoc />
-        public string IdAttributeDotReplacement { get; set; }
+        public string IdAttributeDotReplacement { get; }
 
         /// <inheritdoc />
         public string Encode(string value)

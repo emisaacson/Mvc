@@ -26,7 +26,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
         /// <summary>
         /// Gets or sets the character that replaces periods in the ID attribute of an element.
         /// </summary>
-        string IdAttributeDotReplacement { get; set; }
+        string IdAttributeDotReplacement { get; }
 
         /// <summary>
         /// Gets the metadata provider. Intended for use in <see cref="IHtmlHelper"/> extension methods.
