@@ -195,7 +195,7 @@ namespace Microsoft.AspNet.Mvc
             var jsonResult = Assert.IsType<JsonResult>(result);
             Assert.NotNull(jsonResult.Value);
             Assert.Same(model, jsonResult.Value);
-            Assert.IsType(model.GetType(), jsonResult.Value);
+            Assert.IsType<MyModel>(jsonResult.Value);
 
             // Arrange
             controller = new TestabilityController();
@@ -227,7 +227,7 @@ namespace Microsoft.AspNet.Mvc
             var jsonResult = Assert.IsType<JsonResult>(result);
             Assert.NotNull(jsonResult.Value);
             Assert.Same(model, jsonResult.Value);
-            Assert.IsType(model.GetType(), jsonResult.Value);
+            Assert.IsType<MyModel>(jsonResult.Value);
             var jsonFormatter = jsonResult.Formatter as JsonOutputFormatter;
             Assert.Same(serializerSettings, jsonFormatter.SerializerSettings);
         }

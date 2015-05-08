@@ -161,10 +161,8 @@ namespace Microsoft.AspNet.Mvc.FunctionalTests
             Assert.Equal("{\"message\":\"hello\"}", content);
         }
 
-        [Theory]
-        [InlineData("application/json")]
-        [InlineData("text/json")]
-        public async Task JsonResult_CustomSerializerSettings_Conneg(string mediaType)
+        [Fact]
+        public async Task JsonResult_Uses_CustomSerializerSettings()
         {
             // Arrange
             var server = TestHelper.CreateServer(_app, SiteName, _configureServices);
@@ -173,7 +171,6 @@ namespace Microsoft.AspNet.Mvc.FunctionalTests
             var url = "http://localhost/JsonResult/CustomSerializerSettings";
 
             var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.TryAddWithoutValidation("Accept", mediaType);
 
             // Act
             var response = await client.SendAsync(request);
@@ -181,7 +178,6 @@ namespace Microsoft.AspNet.Mvc.FunctionalTests
 
             // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Equal(mediaType, response.Content.Headers.ContentType.MediaType);
             Assert.Equal("{\"message\":\"hello\"}", content);
         }
 

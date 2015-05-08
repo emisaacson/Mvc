@@ -405,11 +405,12 @@ namespace Microsoft.AspNet.Mvc
         /// to JSON.
         /// </summary>
         /// <param name="data">The object to serialize.</param>
-        /// <param name="serializerSettings">The <see cref="JsonSerializerSettings"/> to be used by the formatter.</param>
+        /// <param name="serializerSettings">The <see cref="JsonSerializerSettings"/> to be used by
+        /// the formatter.</param>
         /// <returns>The created <see cref="JsonResult"/> that serializes the specified <paramref name="data"/>
-        /// to JSON format for the response.</returns>
-        /// <remarks>It is recommended to cache the <see cref="JsonSerializerSettings"/> instance for the action
-        /// since it creates a new contract for every instance.</remarks>
+        /// as JSON format for the response.</returns>
+        /// <remarks>Callers should cache an instance of <see cref="JsonSerializerSettings"/> to avoid
+        /// recreating cached data with each call.</remarks>
         [NonAction]
         public virtual JsonResult Json(object data, [NotNull] JsonSerializerSettings serializerSettings)
         {

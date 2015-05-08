@@ -28,7 +28,7 @@ namespace Microsoft.AspNet.Mvc
         };
 
         /// <summary>
-        /// Creates a new <see cref="JsonResult"/> with the given <paramref name="data"/>.
+        /// Creates a new <see cref="JsonResult"/> with the given <paramref name="value"/>.
         /// </summary>
         /// <param name="value">The value to format as JSON.</param>
         public JsonResult(object value)
@@ -37,11 +37,12 @@ namespace Microsoft.AspNet.Mvc
         }
 
         /// <summary>
-        /// Creates a new <see cref="JsonResult"/> with the given <paramref name="data"/>.
+        /// Creates a new <see cref="JsonResult"/> with the given <paramref name="value"/>.
         /// </summary>
         /// <param name="value">The value to format as JSON.</param>
-        /// <param name="serializerSettings">The <see cref="JsonSerializerSettings"/> to be used by the formatter.</param>
-        public JsonResult(object value, JsonSerializerSettings serializerSettings)
+        /// <param name="serializerSettings">The <see cref="JsonSerializerSettings"/> to be used by
+        /// the formatter.</param>
+        public JsonResult(object value, [NotNull] JsonSerializerSettings serializerSettings)
             : this(value, formatter: new JsonOutputFormatter { SerializerSettings = serializerSettings })
         {
         }

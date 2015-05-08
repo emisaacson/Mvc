@@ -10,6 +10,8 @@ namespace BasicWebSite.Controllers
 {
     public class JsonResultController : Controller
     {
+        private static JsonSerializerSettings _customSerializerSettings;
+
         public JsonResult Plain()
         {
             return Json(new { Message = "hello" });
@@ -35,10 +37,15 @@ namespace BasicWebSite.Controllers
 
         public JsonResult CustomSerializerSettings()
         {
-            var serializerSettings = new JsonSerializerSettings();
-            serializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+            if (_customSerializerSettings == null)
+            {
+                _customSerializerSettings = new JsonSerializerSettings
+                {
+                    ContractResolver = new CamelCasePropertyNamesContractResolver()
+                };
+            }
 
-            return new JsonResult(new { Message = "hello" }, serializerSettings);
+            return Json(new { Message = "hello" }, _customSerializerSettings);
         }
 
         public JsonResult Null()
