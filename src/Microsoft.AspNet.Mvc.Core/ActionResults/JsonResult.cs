@@ -48,7 +48,7 @@ namespace Microsoft.AspNet.Mvc
         }
 
         /// <summary>
-        /// Creates a new <see cref="JsonResult"/> with the given <paramref name="data"/>.
+        /// Creates a new <see cref="JsonResult"/> with the given <paramref name="value"/>.
         /// </summary>
         /// <param name="value">The value to format as JSON.</param>
         /// <param name="formatter">The formatter to use, or <c>null</c> to choose a formatter dynamically.</param>
