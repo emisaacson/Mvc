@@ -9,6 +9,7 @@ using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Internal;
 using Microsoft.Framework.OptionsModel;
 using Microsoft.Net.Http.Headers;
+using Newtonsoft.Json;
 
 namespace Microsoft.AspNet.Mvc
 {
@@ -32,6 +33,16 @@ namespace Microsoft.AspNet.Mvc
         /// <param name="value">The value to format as JSON.</param>
         public JsonResult(object value)
             : this(value, formatter: null)
+        {
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="JsonResult"/> with the given <paramref name="data"/>.
+        /// </summary>
+        /// <param name="value">The value to format as JSON.</param>
+        /// <param name="serializerSettings">The <see cref="JsonSerializerSettings"/> to be used by the formatter.</param>
+        public JsonResult(object value, JsonSerializerSettings serializerSettings)
+            : this(value, formatter: new JsonOutputFormatter { SerializerSettings = serializerSettings })
         {
         }
 

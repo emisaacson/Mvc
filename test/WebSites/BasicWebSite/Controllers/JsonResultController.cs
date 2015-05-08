@@ -3,6 +3,7 @@
 
 using Microsoft.AspNet.Mvc;
 using Microsoft.Net.Http.Headers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
 namespace BasicWebSite.Controllers
@@ -30,6 +31,14 @@ namespace BasicWebSite.Controllers
             var result = new JsonResult(new { Message = "hello" }, formatter);
             result.ContentTypes.Add(MediaTypeHeaderValue.Parse("application/message+json"));
             return result;
+        }
+
+        public JsonResult CustomSerializerSettings()
+        {
+            var serializerSettings = new JsonSerializerSettings();
+            serializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+
+            return new JsonResult(new { Message = "hello" }, serializerSettings);
         }
 
         public JsonResult Null()
