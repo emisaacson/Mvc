@@ -96,33 +96,35 @@ namespace Microsoft.AspNet.Mvc
 
         public override void Write(string value)
         {
-            if (value != null)
+            if (value == null)
             {
-                int count = value.Length;
-                int index = 0;
-                while (count > 0)
+                return;
+            }
+
+            int count = value.Length;
+            int index = 0;
+            while (count > 0)
+            {
+                if (_charBufferCount == _charBufferSize)
                 {
-                    if (_charBufferCount == _charBufferSize)
-                    {
-                        Flush();
-                    }
-
-                    int remaining = _charBufferSize - _charBufferCount;
-                    if (remaining > count)
-                    {
-                        remaining = count;
-                    }
-
-                    value.CopyTo(
-                        sourceIndex: index,
-                        destination: _charBuffer,
-                        destinationIndex: _charBufferCount,
-                        count: remaining);
-
-                    _charBufferCount += remaining;
-                    index += remaining;
-                    count -= remaining;
+                    Flush();
                 }
+
+                int remaining = _charBufferSize - _charBufferCount;
+                if (remaining > count)
+                {
+                    remaining = count;
+                }
+
+                value.CopyTo(
+                    sourceIndex: index,
+                    destination: _charBuffer,
+                    destinationIndex: _charBufferCount,
+                    count: remaining);
+
+                _charBufferCount += remaining;
+                index += remaining;
+                count -= remaining;
             }
         }
 
@@ -172,33 +174,35 @@ namespace Microsoft.AspNet.Mvc
 
         public override async Task WriteAsync(string value)
         {
-            if (value != null)
+            if (value == null)
             {
-                int count = value.Length;
-                int index = 0;
-                while (count > 0)
+                return;
+            }
+
+            int count = value.Length;
+            int index = 0;
+            while (count > 0)
+            {
+                if (_charBufferCount == _charBufferSize)
                 {
-                    if (_charBufferCount == _charBufferSize)
-                    {
-                        await FlushAsync();
-                    }
-
-                    int charBufferFreeSpace = _charBufferSize - _charBufferCount;
-                    if (charBufferFreeSpace > count)
-                    {
-                        charBufferFreeSpace = count;
-                    }
-
-                    value.CopyTo(
-                        sourceIndex: index,
-                        destination: _charBuffer,
-                        destinationIndex: _charBufferCount,
-                        count: charBufferFreeSpace);
-
-                    _charBufferCount += charBufferFreeSpace;
-                    index += charBufferFreeSpace;
-                    count -= charBufferFreeSpace;
+                    await FlushAsync();
                 }
+
+                int charBufferFreeSpace = _charBufferSize - _charBufferCount;
+                if (charBufferFreeSpace > count)
+                {
+                    charBufferFreeSpace = count;
+                }
+
+                value.CopyTo(
+                    sourceIndex: index,
+                    destination: _charBuffer,
+                    destinationIndex: _charBufferCount,
+                    count: charBufferFreeSpace);
+
+                _charBufferCount += charBufferFreeSpace;
+                index += charBufferFreeSpace;
+                count -= charBufferFreeSpace;
             }
         }
 
@@ -223,9 +227,10 @@ namespace Microsoft.AspNet.Mvc
             Flush(flushStream: false, flushEncoder: true);
         }
 #endif
-
         protected override void Dispose(bool disposing)
         {
+            // In CoreClr this is equivalent to calling Close()
+
             Flush(flushStream: false, flushEncoder: true);
         }
 
