@@ -151,19 +151,10 @@ namespace Microsoft.AspNet.Mvc
             await FlushInternalAsync(true, true);
         }
 
-        // Do not flush the stream on Close/Dispose, as this will cause response to be
+        // Do not flush the stream on Dispose, as this will cause response to be
         // sent in chunked encoding in case of Helios.
-
-#if DNX451
-        public override void Close()
-        {
-            FlushInternal(flushStream: false, flushEncoder: true);
-        }
-#endif
         protected override void Dispose(bool disposing)
         {
-            // In CoreClr this is equivalent to calling Close()
-
             FlushInternal(flushStream: false, flushEncoder: true);
         }
 

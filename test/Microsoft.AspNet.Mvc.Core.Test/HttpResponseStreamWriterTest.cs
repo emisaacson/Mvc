@@ -294,6 +294,67 @@ namespace Microsoft.AspNet.Mvc
             Assert.Equal(byteLength, stream.Length);
         }
 
+        [Theory]
+        [InlineData("你好世界", "utf-16")]
+        [InlineData("こんにちは世界", "shift_jis")]
+        [InlineData("హలో ప్రపంచ", "iso-8859-1")]
+        [InlineData("வணக்கம் உலக", "utf-32")]
+        public async Task WritesData_InExpectedEncoding(string data, string encodingName)
+        {
+            // Arrange
+            var encoding = Encoding.GetEncoding(encodingName);
+            var expectedBytes = encoding.GetBytes(data);
+            var stream = new MemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, encoding);
+
+            // Act
+            using (writer)
+            {
+                await writer.WriteAsync(data);
+            }
+
+            // Assert
+            Assert.Equal(expectedBytes, stream.ToArray());
+        }
+
+        [Theory]
+        [InlineData('ん', 1023, "utf-8")]
+        [InlineData('ん', 1024, "utf-8")]
+        [InlineData('ん', 1050, "utf-8")]
+        [InlineData('你', 1023, "utf-16")]
+        [InlineData('你', 1024, "utf-16")]
+        [InlineData('你', 1050, "utf-16")]
+        [InlineData('こ', 1023, "shift_jis")]
+        [InlineData('こ', 1024, "shift_jis")]
+        [InlineData('こ', 1050, "shift_jis")]
+        [InlineData('హ', 1023, "iso-8859-1")]
+        [InlineData('హ', 1024, "iso-8859-1")]
+        [InlineData('హ', 1050, "iso-8859-1")]
+        [InlineData('வ', 1023, "utf-32")]
+        [InlineData('வ', 1024, "utf-32")]
+        [InlineData('வ', 1050, "utf-32")]
+        public async Task WritesData_OfDifferentLength_InExpectedEncoding(
+            char character,
+            int charCount,
+            string encodingName)
+        {
+            // Arrange
+            var encoding = Encoding.GetEncoding(encodingName);
+            string data = new string(character, charCount);
+            var expectedBytes = encoding.GetBytes(data);
+            var stream = new MemoryStream();
+            var writer = new HttpResponseStreamWriter(stream, encoding);
+
+            // Act
+            using (writer)
+            {
+                await writer.WriteAsync(data);
+            }
+
+            // Assert
+            Assert.Equal(expectedBytes, stream.ToArray());
+        }
+
         private class TestMemoryStream : MemoryStream
         {
             private int _flushCallCount;

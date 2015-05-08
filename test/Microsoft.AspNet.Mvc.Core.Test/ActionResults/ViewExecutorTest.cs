@@ -17,9 +17,6 @@ namespace Microsoft.AspNet.Mvc
 {
     public class ViewExecutorTest
     {
-        // The buffer size of the StreamWriter used in ViewResult.
-        private const int ViewResultStreamWriterBufferSize = 1024;
-
         public static TheoryData<MediaTypeHeaderValue, string, byte[]> ViewExecutorSetsContentTypeAndEncodingData
         {
             get
