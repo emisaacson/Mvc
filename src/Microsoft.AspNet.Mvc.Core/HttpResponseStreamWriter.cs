@@ -30,7 +30,7 @@ namespace Microsoft.AspNet.Mvc
 
         public HttpResponseStreamWriter([NotNull] Stream stream, [NotNull] Encoding encoding, int bufferSize)
         {
-            this._stream = stream;
+            _stream = stream;
             Encoding = encoding;
             _encoder = encoding.GetEncoder();
             _charBufferSize = bufferSize;
@@ -44,26 +44,16 @@ namespace Microsoft.AspNet.Mvc
         {
             if (_charBufferCount == _charBufferSize)
             {
-                Flush();
+                FlushInternal();
             }
 
             _charBuffer[_charBufferCount] = value;
             _charBufferCount++;
         }
 
-        public override void Write(char[] values)
+        public override void Write(char[] values, int index, int count)
         {
             if (values == null)
-            {
-                return;
-            }
-
-            Write(values, 0, values.Length);
-        }
-
-        public override void Write(char[] buffer, int index, int count)
-        {
-            if (buffer == null)
             {
                 return;
             }
@@ -72,25 +62,10 @@ namespace Microsoft.AspNet.Mvc
             {
                 if (_charBufferCount == _charBufferSize)
                 {
-                    Flush();
+                    FlushInternal();
                 }
 
-                int remaining = _charBufferSize - _charBufferCount;
-                if (remaining > count)
-                {
-                    remaining = count;
-                }
-
-                Buffer.BlockCopy(
-                    src: buffer,
-                    srcOffset: index * sizeof(char),
-                    dst: _charBuffer,
-                    dstOffset: _charBufferCount * sizeof(char),
-                    count: remaining * sizeof(char));
-
-                _charBufferCount += remaining;
-                index += remaining;
-                count -= remaining;
+                CopyToCharBuffer(values, ref index, ref count);
             }
         }
 
@@ -101,30 +76,16 @@ namespace Microsoft.AspNet.Mvc
                 return;
             }
 
-            int count = value.Length;
-            int index = 0;
+            var count = value.Length;
+            var index = 0;
             while (count > 0)
             {
                 if (_charBufferCount == _charBufferSize)
                 {
-                    Flush();
+                    FlushInternal();
                 }
 
-                int remaining = _charBufferSize - _charBufferCount;
-                if (remaining > count)
-                {
-                    remaining = count;
-                }
-
-                value.CopyTo(
-                    sourceIndex: index,
-                    destination: _charBuffer,
-                    destinationIndex: _charBufferCount,
-                    count: remaining);
-
-                _charBufferCount += remaining;
-                index += remaining;
-                count -= remaining;
+                CopyToCharBuffer(value, ref index, ref count);
             }
         }
 
@@ -132,16 +93,16 @@ namespace Microsoft.AspNet.Mvc
         {
             if (_charBufferCount == _charBufferSize)
             {
-                await FlushAsync();
+                await FlushInternalAsync();
             }
 
             _charBuffer[_charBufferCount] = value;
             _charBufferCount++;
         }
 
-        public override async Task WriteAsync(char[] buffer, int index, int count)
+        public override async Task WriteAsync(char[] values, int index, int count)
         {
-            if (buffer == null)
+            if (values == null)
             {
                 return;
             }
@@ -150,25 +111,10 @@ namespace Microsoft.AspNet.Mvc
             {
                 if (_charBufferCount == _charBufferSize)
                 {
-                    await FlushAsync();
+                    await FlushInternalAsync();
                 }
 
-                int remaining = _charBufferSize - _charBufferCount;
-                if (remaining > count)
-                {
-                    remaining = count;
-                }
-
-                Buffer.BlockCopy(
-                    src: buffer,
-                    srcOffset: index * sizeof(char),
-                    dst: _charBuffer,
-                    dstOffset: _charBufferCount * sizeof(char),
-                    count: remaining * sizeof(char));
-
-                _charBufferCount += remaining;
-                index += remaining;
-                count -= remaining;
+                CopyToCharBuffer(values, ref index, ref count);
             }
         }
 
@@ -179,69 +125,56 @@ namespace Microsoft.AspNet.Mvc
                 return;
             }
 
-            int count = value.Length;
-            int index = 0;
+            var count = value.Length;
+            var index = 0;
             while (count > 0)
             {
                 if (_charBufferCount == _charBufferSize)
                 {
-                    await FlushAsync();
+                    await FlushInternalAsync();
                 }
 
-                int charBufferFreeSpace = _charBufferSize - _charBufferCount;
-                if (charBufferFreeSpace > count)
-                {
-                    charBufferFreeSpace = count;
-                }
-
-                value.CopyTo(
-                    sourceIndex: index,
-                    destination: _charBuffer,
-                    destinationIndex: _charBufferCount,
-                    count: charBufferFreeSpace);
-
-                _charBufferCount += charBufferFreeSpace;
-                index += charBufferFreeSpace;
-                count -= charBufferFreeSpace;
+                CopyToCharBuffer(value, ref index, ref count);
             }
         }
 
-        // Do not flush the stream on Close/Dispose, as this will cause response to be
-        // sent in chunked encoding in case of Helios.
-        // We however want to flush the stream when Flush/FlushAsync is explicitly
+        // We want to flush the stream when Flush/FlushAsync is explicitly
         // called by the user (example: from a Razor view).
 
         public override void Flush()
         {
-            Flush(true, true);
+            FlushInternal(true, true);
         }
 
         public override async Task FlushAsync()
         {
-            await FlushAsync(true, true);
+            await FlushInternalAsync(true, true);
         }
+
+        // Do not flush the stream on Close/Dispose, as this will cause response to be
+        // sent in chunked encoding in case of Helios.
 
 #if DNX451
         public override void Close()
         {
-            Flush(flushStream: false, flushEncoder: true);
+            FlushInternal(flushStream: false, flushEncoder: true);
         }
 #endif
         protected override void Dispose(bool disposing)
         {
             // In CoreClr this is equivalent to calling Close()
 
-            Flush(flushStream: false, flushEncoder: true);
+            FlushInternal(flushStream: false, flushEncoder: true);
         }
 
-        private void Flush(bool flushStream = false, bool flushEncoder = false)
+        private void FlushInternal(bool flushStream = false, bool flushEncoder = false)
         {
             if (_charBufferCount == 0)
             {
                 return;
             }
 
-            int count = _encoder.GetBytes(_charBuffer, 0, _charBufferCount, _byteBuffer, 0, flushEncoder);
+            var count = _encoder.GetBytes(_charBuffer, 0, _charBufferCount, _byteBuffer, 0, flushEncoder);
             if (count > 0)
             {
                 _stream.Write(_byteBuffer, 0, count);
@@ -255,14 +188,14 @@ namespace Microsoft.AspNet.Mvc
             }
         }
 
-        private async Task FlushAsync(bool flushStream = false, bool flushEncoder = false)
+        private async Task FlushInternalAsync(bool flushStream = false, bool flushEncoder = false)
         {
             if (_charBufferCount == 0)
             {
                 return;
             }
 
-            int count = _encoder.GetBytes(_charBuffer, 0, _charBufferCount, _byteBuffer, 0, flushEncoder);
+            var count = _encoder.GetBytes(_charBuffer, 0, _charBufferCount, _byteBuffer, 0, flushEncoder);
             if (count > 0)
             {
                 await _stream.WriteAsync(_byteBuffer, 0, count);
@@ -274,6 +207,37 @@ namespace Microsoft.AspNet.Mvc
             {
                 await _stream.FlushAsync();
             }
+        }
+
+        private void CopyToCharBuffer(string value, ref int index, ref int count)
+        {
+            var remaining = Math.Min(_charBufferSize - _charBufferCount, count);
+
+            value.CopyTo(
+                sourceIndex: index,
+                destination: _charBuffer,
+                destinationIndex: _charBufferCount,
+                count: remaining);
+
+            _charBufferCount += remaining;
+            index += remaining;
+            count -= remaining;
+        }
+
+        private void CopyToCharBuffer(char[] values, ref int index, ref int count)
+        {
+            var remaining = Math.Min(_charBufferSize - _charBufferCount, count);
+
+            Buffer.BlockCopy(
+                src: values,
+                srcOffset: index * sizeof(char),
+                dst: _charBuffer,
+                dstOffset: _charBufferCount * sizeof(char),
+                count: remaining * sizeof(char));
+
+            _charBufferCount += remaining;
+            index += remaining;
+            count -= remaining;
         }
     }
 }
